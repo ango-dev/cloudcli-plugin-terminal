@@ -110,6 +110,13 @@ const PLUGIN_CSS = `
 .wt-pane .xterm { height:100%; }
 .wt-pane .xterm-viewport { overflow-y:auto !important; }
 .xterm .xterm-screen { outline:none !important; }
+/* xterm's own stylesheet draws the input-method composition (CJK input,
+   dead-key accents) as white on black; put it on the host's surface, with the
+   usual underline marking text that is still being composed. */
+.wt-root .xterm .composition-view {
+  background:hsl(var(--wt-card)); color:hsl(var(--wt-fg));
+  box-shadow:inset 0 -2px 0 hsl(var(--wt-primary));
+}
 
 .wt-overlay {
   position:absolute; inset:0; display:flex; flex-direction:column;
