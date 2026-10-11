@@ -1,5 +1,7 @@
 /** xterm.js colour schemes offered in the settings popover. */
 
+import { hostTerminalTheme, readHostPalette } from './hostColors.js';
+
 export interface TerminalTheme {
   background: string;
   foreground: string;
@@ -7,6 +9,7 @@ export interface TerminalTheme {
   cursorAccent: string;
   selectionBackground: string;
   selectionForeground?: string;
+  selectionInactiveBackground?: string;
   black: string; red: string; green: string; yellow: string;
   blue: string; magenta: string; cyan: string; white: string;
   brightBlack: string; brightRed: string; brightGreen: string; brightYellow: string;
@@ -65,22 +68,31 @@ export const THEMES: Record<string, TerminalTheme> = {
 };
 
 /**
- * Name shown for the default preference: the terminal tracks whatever light
- * or dark mode the surrounding CloudCLI app is in. Before this existed, a
- * user in light mode still got a hardcoded near-black terminal.
+ * Name shown for the default preference: the terminal takes its colours from
+ * the surrounding CloudCLI app's theme variables, so it matches the app in
+ * both light and dark mode. The stored value is unchanged from earlier
+ * versions, so existing preferences keep working.
  */
 export const AUTO_THEME = 'Auto (match app)';
 
 /** All selectable options, `Auto` first. */
 export const THEME_NAMES = [AUTO_THEME, ...Object.keys(THEMES)];
 
-/** Maps a stored preference plus the host's mode onto a concrete theme name. */
-export function resolveThemeName(preference: string | undefined, hostTheme: 'dark' | 'light'): string {
-  if (preference && preference !== AUTO_THEME && THEMES[preference]) return preference;
-  return hostTheme === 'light' ? 'Light' : 'VS Dark';
+export interface ResolvedTheme {
+  theme: TerminalTheme;
+  /** xterm's contrast floor for text; the fixed themes keep xterm's default of 1. */
+  minimumContrastRatio: number;
 }
 
-/** True when the resolved theme is a light one, so the chrome can match it. */
-export function isLightTheme(resolvedName: string): boolean {
-  return resolvedName === 'Light';
+/** Maps a stored preference plus the host's mode onto concrete xterm colours. */
+export function resolveTheme(preference: string | undefined, hostTheme: 'dark' | 'light'): ResolvedTheme {
+  if (preference && preference !== AUTO_THEME && THEMES[preference]) {
+    return { theme: THEMES[preference], minimumContrastRatio: 1 };
+  }
+  const palette = readHostPalette(hostTheme);
+  // Light: many CLIs hard-code truecolor accents picked for a dark background,
+  // so xterm darkens just those cells to WCAG AA, as CloudCLI's own Shell does.
+  // Dark: a gentler floor that keeps black (and other near-background) text
+  // legible without touching cell backgrounds.
+  return { theme: hostTerminalTheme(palette), minimumContrastRatio: palette.dark ? 3 : 4.5 };
 }

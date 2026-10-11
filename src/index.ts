@@ -17,7 +17,8 @@ import {
 } from './prefs.js';
 import { injectStyles } from './ui/styles.js';
 import { IC } from './ui/icons.js';
-import { THEME_NAMES, isLightTheme, resolveThemeName } from './ui/themes.js';
+import { THEME_NAMES } from './ui/themes.js';
+import { hostSearchDecorations, readHostPalette } from './ui/hostColors.js';
 
 interface GlobalState {
   sessions: Map<string, TerminalSession>;
@@ -167,8 +168,11 @@ export async function mount(container: HTMLElement, api: PluginAPI): Promise<voi
   };
 
   const root = el('div', 'wt-root');
+  // The chrome follows the host's mode whatever terminal theme is picked: its
+  // colours come from the host's CSS variables, and this class only selects
+  // which fallbacks apply on a host that lacks them.
   const applyChrome = (): void => {
-    root.classList.toggle('wt-light', isLightTheme(resolveThemeName(prefs.theme, hostTheme)));
+    root.classList.toggle('wt-light', hostTheme === 'light');
   };
   applyChrome();
   container.appendChild(root);
@@ -587,18 +591,10 @@ export async function mount(container: HTMLElement, api: PluginAPI): Promise<voi
       activeSession()?.focus();
     }
   }
-  const SEARCH_OPTIONS = {
-    decorations: {
-      matchBackground: '#5f5f00', matchBorder: '#e5e510',
-      matchOverviewRuler: '#e5e510',
-      activeMatchBackground: '#e5e510', activeMatchBorder: '#ffffff',
-      activeMatchColorOverviewRuler: '#ffffff',
-    },
-  };
   function runSearch(direction: 'next' | 'prev', incremental = false): void {
     const session = activeSession();
     if (!session || !searchInput.value) { searchCount.textContent = ''; return; }
-    const options = { ...SEARCH_OPTIONS, incremental };
+    const options = { decorations: hostSearchDecorations(readHostPalette(hostTheme)), incremental };
     if (direction === 'next') session.searchAddon.findNext(searchInput.value, options);
     else session.searchAddon.findPrevious(searchInput.value, options);
   }
@@ -711,14 +707,36 @@ export async function mount(container: HTMLElement, api: PluginAPI): Promise<voi
   onViewportResize();
 
   // ── Host context ───────────────────────────────────────────────────────────
+  // xterm needs the host's colours as values, read from <html>'s computed
+  // style. CloudCLI notifies plugins before it toggles the `dark` class on
+  // <html>, so reading inside the callback would get the old mode's colours:
+  // re-read on the next frame, and whenever <html>'s class or style changes.
+  let themeFrame = 0;
+  const refreshTheme = (): void => {
+    if (themeFrame) return;
+    themeFrame = requestAnimationFrame(() => {
+      themeFrame = 0;
+      for (const session of state.sessions.values()) session.applyTheme(prefs, hostTheme);
+    });
+  };
+  const htmlObserver = typeof MutationObserver === 'function' ? new MutationObserver(refreshTheme) : null;
+  htmlObserver?.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'style'] });
+
   const unsubscribe = api.onContextChange?.((context) => {
     const nextTheme = context.theme === 'light' ? 'light' : 'dark';
     if (nextTheme !== hostTheme) {
       hostTheme = nextTheme;
       applyChrome();
-      for (const session of state.sessions.values()) session.applyPrefs(prefs, hostTheme);
     }
+    refreshTheme();
   }) ?? null;
+
+  // The host's Geist Mono may still be loading when the first terminal measures
+  // its cells; re-measure once the page's fonts settle.
+  const onFontsLoaded = (): void => {
+    for (const session of state.sessions.values()) session.refreshFontMetrics();
+  };
+  document.fonts?.addEventListener?.('loadingdone', onFontsLoaded);
 
   renderTabs();
 
@@ -727,6 +745,9 @@ export async function mount(container: HTMLElement, api: PluginAPI): Promise<voi
     document.removeEventListener('keydown', onKeyDown);
     document.removeEventListener('click', closePopoverOnOutsideClick);
     viewport?.removeEventListener('resize', onViewportResize);
+    htmlObserver?.disconnect();
+    if (themeFrame) cancelAnimationFrame(themeFrame);
+    document.fonts?.removeEventListener?.('loadingdone', onFontsLoaded);
     if (toastTimer) clearTimeout(toastTimer);
     for (const sub of searchResultSubs.values()) { try { sub.dispose(); } catch { /* ignore */ } }
     searchResultSubs.clear();

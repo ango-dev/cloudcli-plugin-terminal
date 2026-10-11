@@ -16,7 +16,7 @@ import { ClipboardAddon } from '@xterm/addon-clipboard';
 import { Unicode11Addon } from '@xterm/addon-unicode11';
 
 import { SCROLLBACK, type Prefs } from './prefs.js';
-import { THEMES, resolveThemeName } from './ui/themes.js';
+import { resolveTheme } from './ui/themes.js';
 import type { HelloMessage, ServerMessage } from './protocol.js';
 
 export type SessionStatus = 'connecting' | 'connected' | 'reconnecting' | 'disconnected' | 'exited' | 'error';
@@ -106,6 +106,8 @@ export class TerminalSession {
   private pendingResume: string | null;
   /** Set while restart() is in flight, so the fresh shell is not reported as an expiry. */
   private restarting = false;
+  /** The colours last handed to xterm, so unchanged re-reads are skipped. */
+  private appliedThemeKey = '';
 
   private readonly onOnline = (): void => { if (this.status === 'reconnecting') this.connect(true); };
   private readonly onVisible = (): void => {
@@ -125,6 +127,12 @@ export class TerminalSession {
     this.el.className = 'wt-pane';
     this.el.hidden = true;
 
+    const colours = resolveTheme(options.prefs.theme, options.hostTheme);
+    this.appliedThemeKey = JSON.stringify(colours);
+    // The pane's padding shows around the terminal, so it takes the terminal's
+    // background rather than the app's when a fixed theme is chosen.
+    this.el.style.background = colours.theme.background;
+
     this.overlayEl = document.createElement('div');
     this.overlayEl.className = 'wt-overlay';
     this.el.appendChild(this.overlayEl);
@@ -143,7 +151,8 @@ export class TerminalSession {
       // No `convertEol`: the PTY's line discipline already applies ONLCR, and
       // forcing it a second time corrupts full-screen apps (vim, htop, less)
       // that move the cursor themselves.
-      theme: THEMES[resolveThemeName(options.prefs.theme, options.hostTheme)],
+      theme: colours.theme,
+      minimumContrastRatio: colours.minimumContrastRatio,
     });
 
     this.fitAddon = new FitAddon();
@@ -613,9 +622,33 @@ export class TerminalSession {
     this.terminal.options.fontFamily = prefs.fontFamily;
     this.terminal.options.cursorStyle = prefs.cursorStyle;
     this.terminal.options.screenReaderMode = prefs.screenReaderMode;
-    this.terminal.options.theme = THEMES[resolveThemeName(prefs.theme, hostTheme)];
+    this.applyTheme(prefs, hostTheme);
     this.applyWebgl(prefs.webgl);
     this.fit(true);
+  }
+
+  /** Re-reads the colours only; called whenever the host's theme may have changed. */
+  applyTheme(prefs: Prefs, hostTheme: 'dark' | 'light'): void {
+    const colours = resolveTheme(prefs.theme, hostTheme);
+    // A new theme object makes xterm redraw everything, and the host touches
+    // <html> for reasons unrelated to colour; skip when nothing changed.
+    const key = JSON.stringify(colours);
+    if (key === this.appliedThemeKey) return;
+    this.appliedThemeKey = key;
+    this.terminal.options.theme = colours.theme;
+    this.terminal.options.minimumContrastRatio = colours.minimumContrastRatio;
+    this.el.style.background = colours.theme.background;
+  }
+
+  /**
+   * xterm measures glyphs once; if the host's mono font finished loading after
+   * that, the cell size is stale. Nudging the family forces a re-measure.
+   */
+  refreshFontMetrics(): void {
+    const family = this.terminal.options.fontFamily;
+    this.terminal.options.fontFamily = 'monospace';
+    this.terminal.options.fontFamily = family;
+    this.fit();
   }
 
   // ── Timers ──────────────────────────────────────────────────────────────────
