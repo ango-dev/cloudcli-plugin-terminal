@@ -6,10 +6,20 @@ const PREFS_KEY = 'web-terminal-prefs';
 /** Pre-1.1 escape hatch; folded into the GPU acceleration checkbox. */
 const LEGACY_WEBGL_KEY = 'web-terminal-disable-webgl';
 
-export const DEFAULT_FONT_FAMILY =
+/** The rest of the stack covers CJK, emoji and hosts without Geist Mono. */
+const FALLBACK_FONT_FAMILY =
   '"Cascadia Mono", Consolas, "DejaVu Sans Mono", "Liberation Mono", "Noto Sans Mono", '
   + '"Noto Sans Mono CJK JP", "Noto Sans CJK JP", "Microsoft YaHei", "MS Gothic", Meiryo, '
   + '"PingFang SC", "Hiragino Sans GB", "Noto Color Emoji", Menlo, Monaco, "Courier New", monospace';
+
+/** CloudCLI's own mono font first; the host page already loads it. */
+export const DEFAULT_FONT_FAMILY = `"Geist Mono", ${FALLBACK_FONT_FAMILY}`;
+
+/**
+ * Earlier versions saved the whole default stack into prefs. There is no UI to
+ * pick a font, so a stored copy of the old default just means "the default".
+ */
+const LEGACY_DEFAULT_FONT_FAMILY = FALLBACK_FONT_FAMILY;
 
 /** Lines of history kept per terminal. */
 export const SCROLLBACK = 10000;
@@ -64,6 +74,7 @@ export function loadPrefs(): Prefs {
     theme,
     fontSize,
     fontFamily: typeof stored.fontFamily === 'string' && stored.fontFamily
+      && stored.fontFamily !== LEGACY_DEFAULT_FONT_FAMILY
       ? stored.fontFamily
       : DEFAULT_PREFS.fontFamily,
     cursorStyle,
