@@ -29,9 +29,10 @@ const PLUGIN_CSS = `
   --wt-input:var(--input, 30 1.9% 21.2%);
   --wt-ring:var(--ring, 15.2 64.9% 63.1%);
   --wt-danger:var(--destructive, 9.9 72.5% 67.3%);
-  /* The host has no success/warning tokens; these sit beside its palette. */
-  --wt-success:74 34% 58%;
-  --wt-warning:40 70% 63%;
+  /* The host has no success/warning tokens; these are the terminal's own ANSI
+     green and yellow (ui/hostColors.ts), so status dots match the shell. */
+  --wt-success:90 55% 56%;
+  --wt-warning:40 90% 62%;
   --wt-radius:var(--radius, 0.625rem);
   --wt-font-sans:Geist, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   --wt-shadow:0 8px 24px rgba(0,0,0,.45);
@@ -56,8 +57,8 @@ const PLUGIN_CSS = `
   --wt-input:var(--input, 60 1.5% 87.3%);
   --wt-ring:var(--ring, 15.1 55.6% 52.4%);
   --wt-danger:var(--destructive, 4.1 59.1% 44.1%);
-  --wt-success:85 56% 30%;
-  --wt-warning:36 100% 34%;
+  --wt-success:95 75% 26%;
+  --wt-warning:36 100% 29%;
   --wt-shadow:0 8px 24px rgba(30,25,20,.12);
   --wt-shadow-lg:0 20px 25px -5px rgba(30,25,20,.1), 0 8px 10px -6px rgba(30,25,20,.1);
   color-scheme:light;
