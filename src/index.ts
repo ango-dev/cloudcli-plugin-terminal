@@ -215,7 +215,7 @@ export async function mount(container: HTMLElement, api: PluginAPI): Promise<voi
   const theme = selectField('Theme', THEME_NAMES.map((name) => ({ value: name, label: name })), prefs.theme);
   popover.appendChild(theme.wrapper);
 
-  popover.appendChild(el('label', undefined, 'Font Size'));
+  popover.appendChild(el('label', undefined, 'Font size'));
   const fontRow = el('div', 'wt-fs-row');
   const fontMinus = iconButton(IC.minus, 'Decrease font size');
   const fontValue = el('span', undefined, `${prefs.fontSize}px`);

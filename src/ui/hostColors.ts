@@ -15,20 +15,20 @@ type Mode = 'dark' | 'light';
 /** The host's own values, used whenever it does not define a variable. */
 const FALLBACKS: Record<Mode, Record<string, string>> = {
   light: {
-    '--background': '60 14% 99%',
-    '--foreground': '60 3% 8%',
-    '--primary': '15 58% 43%',
-    '--muted-foreground': '50 3% 41%',
-    '--destructive': '4 59% 44%',
-    '--link': '218 61% 44%',
+    '--background': '60 14.3% 98.6%',
+    '--foreground': '60 2.6% 7.6%',
+    '--primary': '15.5 58.2% 43.1%',
+    '--muted-foreground': '50 2.9% 40.8%',
+    '--destructive': '4.1 59.1% 44.1%',
+    '--link': '218.4 61.3% 43.5%',
   },
   dark: {
-    '--background': '0 0% 8%',
-    '--foreground': '45 12% 93%',
-    '--primary': '15 65% 63%',
-    '--muted-foreground': '45 4% 56%',
-    '--destructive': '10 72% 67%',
-    '--link': '217 89% 76%',
+    '--background': '0 0% 8.2%',
+    '--foreground': '45 11.8% 93.3%',
+    '--primary': '15.2 64.9% 63.1%',
+    '--muted-foreground': '45 3.6% 56.1%',
+    '--destructive': '9.9 72.5% 67.3%',
+    '--link': '217.1 88.7% 75.7%',
   },
 };
 
