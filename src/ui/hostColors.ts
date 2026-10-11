@@ -20,6 +20,7 @@ const FALLBACKS: Record<Mode, Record<string, string>> = {
     '--primary': '15 58% 43%',
     '--muted-foreground': '50 3% 41%',
     '--destructive': '4 59% 44%',
+    '--link': '218 61% 44%',
   },
   dark: {
     '--background': '0 0% 8%',
@@ -27,6 +28,7 @@ const FALLBACKS: Record<Mode, Record<string, string>> = {
     '--primary': '15 65% 63%',
     '--muted-foreground': '45 4% 56%',
     '--destructive': '10 72% 67%',
+    '--link': '217 89% 76%',
   },
 };
 
@@ -74,6 +76,7 @@ export interface HostPalette {
   primary: Rgb;
   mutedForeground: Rgb;
   destructive: Rgb;
+  link: Rgb;
 }
 
 /**
@@ -96,32 +99,35 @@ export function readHostPalette(hostTheme: Mode): HostPalette {
     primary: read('--primary', mode),
     mutedForeground: read('--muted-foreground', mode),
     destructive: read('--destructive', mode),
+    link: read('--link', mode),
   };
 }
 
 /**
- * ANSI hues matching CloudCLI's own Shell, so the plugin terminal and the
- * built-in one look alike. Red comes from --destructive at build time.
- * Dark: softened warm variants of the classic set, with black lifted just off
- * the background so black cell backgrounds stay visible. Light: every colour except
- * the two whites keeps at least 4.5:1 on the off-white background, and the
+ * ANSI hues tuned for the host's surfaces. Red and blue come from the host's
+ * --destructive and --link at build time; the rest are warm-leaning but
+ * saturated enough that TUIs (htop meters, git diffs, prompts) read as colour
+ * rather than tinted grey.
+ * Dark: every colour keeps at least 5.5:1 on the background, with black lifted
+ * just off it so black cell backgrounds stay visible. Light: every colour
+ * except bright white keeps at least 5:1 on the off-white background, and the
  * bright variants are darker because xterm draws bold text in them.
  */
 const ANSI: Record<Mode, Omit<TerminalTheme,
-  'background' | 'foreground' | 'cursor' | 'cursorAccent' | 'selectionBackground' | 'red'>> = {
+  'background' | 'foreground' | 'cursor' | 'cursorAccent' | 'selectionBackground' | 'red' | 'blue'>> = {
   dark: {
-    black: '#3b3a37', green: '#a7b86f', yellow: '#e3b660',
-    blue: '#86abcc', magenta: '#cc92b5', cyan: '#86bcb1', white: '#cfcecb',
-    brightBlack: '#93918b', brightRed: '#f09a87', brightGreen: '#bfcd8a',
-    brightYellow: '#efca80', brightBlue: '#a3c0db', brightMagenta: '#dcaccb',
-    brightCyan: '#a2cec5', brightWhite: '#f0efec',
+    black: '#3b3a37', green: '#8fcd51', yellow: '#f5bb47',
+    magenta: '#e48bc3', cyan: '#49cabd', white: '#d5d2cd',
+    brightBlack: '#93908a', brightRed: '#fb8a74', brightGreen: '#a5e160',
+    brightYellow: '#ffcf57', brightBlue: '#99c5ff', brightMagenta: '#f391d2',
+    brightCyan: '#57dbca', brightWhite: '#efeeeb',
   },
   light: {
-    black: '#141413', green: '#4a6a1e', yellow: '#875800',
-    blue: '#2f5f8a', magenta: '#8e3f6e', cyan: '#1d6b66', white: '#6b6a65',
-    brightBlack: '#55534e', brightRed: '#952a22', brightGreen: '#3d5817',
-    brightYellow: '#714a00', brightBlue: '#244d73', brightMagenta: '#76325b',
-    brightCyan: '#175955', brightWhite: '#8a857b',
+    black: '#141413', green: '#3a7411', yellow: '#945900',
+    magenta: '#a12b76', cyan: '#067174', white: '#6a6862',
+    brightBlack: '#585651', brightRed: '#972820', brightGreen: '#2e600b',
+    brightYellow: '#7a4500', brightBlue: '#1f4898', brightMagenta: '#882062',
+    brightCyan: '#035d63', brightWhite: '#878278',
   },
 };
 
@@ -140,6 +146,7 @@ export function hostTerminalTheme(palette: HostPalette): TerminalTheme {
     selectionForeground: hex(palette.foreground),
     selectionInactiveBackground: hex(mix(palette.mutedForeground, palette.background, 0.25)),
     red: hex(palette.destructive),
+    blue: hex(palette.link),
     brightWhite: palette.dark ? hex(palette.foreground) : ansi.brightWhite,
     black: palette.dark ? ansi.black : hex(palette.foreground),
   };
