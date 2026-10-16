@@ -4,6 +4,13 @@ A full-featured terminal for [CloudCLI UI](https://github.com/cloudcli-ai/cloudc
 [xterm.js](https://xtermjs.org/). Open multiple shells in tabs and work directly in the browser —
 no SSH client and no external terminal needed.
 
+> **About this fork:** a restyled fork of
+> [cloudcli-ai/cloudcli-plugin-terminal](https://github.com/cloudcli-ai/cloudcli-plugin-terminal),
+> made to match [ango-dev/claudecodeui](https://github.com/ango-dev/claudecodeui), a Claude Code-only
+> build of CloudCLI. Its colours, fonts, corners and controls follow that app's theme in light and dark
+> mode; the terminal itself works as in the original. Credit for the plugin goes to its original
+> authors, and its name, licence and credits are kept.
+
 ## Features
 
 - **Multi-tab shells** — as many terminals as you need, each with its own PTY
@@ -13,8 +20,8 @@ no SSH client and no external terminal needed.
 - **Automatic reconnect** — exponential backoff, plus an instant retry when the browser comes back
   online or the tab becomes visible again
 - **Search the scrollback** — `Ctrl+Shift+F`, with match counts and highlighting
-- **Themes** — follows CloudCLI's light/dark mode by default; VS Dark, One Dark, Dracula,
-  Solarized Dark and Light are available explicitly
+- **Themes** — by default takes its colours from CloudCLI's own theme, in light and dark mode;
+  VS Dark, One Dark, Dracula, Solarized Dark and Light are available explicitly
 - **Shell picker** — run zsh, bash, fish, PowerShell… whatever the machine actually has
 - **Mobile key bar** — Esc, Tab, Ctrl, Alt, `^C`/`^D`/`^Z`, arrows, Home/End/PgUp/PgDn and the
   punctuation soft keyboards hide. The Ctrl and Alt keys apply to the next character you type,
@@ -44,7 +51,7 @@ Open the gear icon in the toolbar:
 
 | Setting | Notes |
 |---|---|
-| Theme | `Auto (match app)` follows CloudCLI's light/dark mode |
+| Theme | `Auto (match app)` uses CloudCLI's theme colours and follows its light/dark mode |
 | Font size | 8–32 px, applied to every tab |
 | Cursor | Block, bar or underline |
 | Shell (new tabs) | Any shell discovered on the host; existing tabs are unaffected |
@@ -60,7 +67,7 @@ Open the gear icon in the toolbar:
 **Manual:**
 
 ```bash
-git clone --depth 1 https://github.com/cloudcli-ai/cloudcli-plugin-terminal.git \
+git clone --depth 1 https://github.com/ango-dev/cloudcli-plugin-terminal.git \
   ~/.claude-code-ui/plugins/cloudcli-plugin-terminal
 cd ~/.claude-code-ui/plugins/cloudcli-plugin-terminal
 npm install
