@@ -181,10 +181,38 @@ export async function mount(container: HTMLElement, api: PluginAPI): Promise<voi
   const toolbar = el('div', 'wt-toolbar');
   root.appendChild(toolbar);
 
+  // The strip keeps its own (hidden) scrolling for touch and trackpads; as in
+  // CloudCLI's header, edge fades show there is more, and on wider screens an
+  // arrow at each edge takes the strip to that end.
+  const tabStrip = el('div', 'wt-tabs-wrap');
   const tabBar = el('div', 'wt-tabs');
   tabBar.setAttribute('role', 'tablist');
   tabBar.setAttribute('aria-label', 'Terminal tabs');
-  toolbar.appendChild(tabBar);
+  const tabsBack = iconButton(IC.left, 'Scroll tabs left', 'wt-tabs-arrow wt-start');
+  const tabsForward = iconButton(IC.right, 'Scroll tabs right', 'wt-tabs-arrow wt-end');
+  tabStrip.append(el('div', 'wt-tabs-fade wt-start'), tabBar, el('div', 'wt-tabs-fade wt-end'), tabsBack, tabsForward);
+  toolbar.appendChild(tabStrip);
+
+  const updateTabOverflow = (): void => {
+    tabStrip.classList.toggle('wt-can-back', tabBar.scrollLeft > 2);
+    tabStrip.classList.toggle('wt-can-forward', tabBar.scrollLeft < tabBar.scrollWidth - tabBar.clientWidth - 2);
+  };
+  const tabScrollBehavior = (): ScrollBehavior =>
+    window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+  tabBar.addEventListener('scroll', updateTabOverflow, { passive: true });
+  // A vertical mouse wheel scrolls the strip sideways while it has room to move.
+  tabBar.addEventListener('wheel', (event) => {
+    if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+    const max = tabBar.scrollWidth - tabBar.clientWidth;
+    if (event.deltaY < 0 ? tabBar.scrollLeft <= 0 : tabBar.scrollLeft >= max) return;
+    event.preventDefault();
+    tabBar.scrollBy({ left: event.deltaY * (event.deltaMode === WheelEvent.DOM_DELTA_LINE ? 20 : 1) });
+  }, { passive: false });
+  tabsBack.addEventListener('click', () => tabBar.scrollTo({ left: 0, behavior: tabScrollBehavior() }));
+  tabsForward.addEventListener('click', () =>
+    tabBar.scrollTo({ left: tabBar.scrollWidth - tabBar.clientWidth, behavior: tabScrollBehavior() }));
+  const tabStripObserver = typeof ResizeObserver === 'function' ? new ResizeObserver(updateTabOverflow) : null;
+  tabStripObserver?.observe(tabBar);
 
   const newTabButton = el('button', 'wt-new-tab', '+');
   newTabButton.type = 'button';
@@ -359,6 +387,16 @@ export async function mount(container: HTMLElement, api: PluginAPI): Promise<voi
       }
     }
     for (const session of state.sessions.values()) syncTabView(session);
+    updateTabOverflow();
+  }
+
+  /** Brings the active tab into view, as the host's header does on a tab change. */
+  function revealActiveTab(): void {
+    requestAnimationFrame(() => {
+      if (!root.isConnected || !state.activeId) return;
+      tabViews.get(state.activeId)?.root.scrollIntoView({ behavior: tabScrollBehavior(), block: 'nearest', inline: 'nearest' });
+      updateTabOverflow();
+    });
   }
 
   const bellRing = new Set<string>();
@@ -392,6 +430,7 @@ export async function mount(container: HTMLElement, api: PluginAPI): Promise<voi
     bellRing.delete(id);
     state.sessions.get(id)?.show();
     renderTabs();
+    revealActiveTab();
     persistTabs();
   }
 
@@ -746,6 +785,7 @@ export async function mount(container: HTMLElement, api: PluginAPI): Promise<voi
     document.removeEventListener('click', closePopoverOnOutsideClick);
     viewport?.removeEventListener('resize', onViewportResize);
     htmlObserver?.disconnect();
+    tabStripObserver?.disconnect();
     if (themeFrame) cancelAnimationFrame(themeFrame);
     document.fonts?.removeEventListener?.('loadingdone', onFontsLoaded);
     if (toastTimer) clearTimeout(toastTimer);
